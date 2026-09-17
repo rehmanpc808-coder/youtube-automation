@@ -1,0 +1,258 @@
+{
+  "name": "Islamic YouTube Automation - Urdu",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -900,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "topic",
+              "name": "topic",
+              "value": "حضرت عمر فاروق رضی اللہ عنہ کے عدل کا ایک سبق آموز واقعہ",
+              "type": "string"
+            },
+            {
+              "id": "language",
+              "name": "language",
+              "value": "Urdu",
+              "type": "string"
+            },
+            {
+              "id": "duration",
+              "name": "duration",
+              "value": "60 seconds",
+              "type": "string"
+            },
+            {
+              "id": "style",
+              "name": "style",
+              "value": "respectful Islamic cinematic documentary, no depiction of Prophets or sacred personalities",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3",
+      "name": "Set Islamic Topic",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -620,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.operesponsesnai.com/v1/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.OPENAI_API_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({model: 'gpt-5.6', input: `Create a 60-second Urdu Islamic documentary script about: ${$json.topic}. Use only verifiable Islamic information. Do not invent hadith, quotes, dates, or events. If a claim needs a source, include a short source note after the script. Make the narration engaging but respectful. Do not depict Prophets or sacred personalities in visual prompts. Also return 6 scene prompts for cinematic historical visuals and a short YouTube title, description, and tags. Return valid JSON with keys: script, source_note, scenes, title, description, tags.`}) }}",
+        "options": {}
+      },
+      "id": "4",
+      "name": "AI Script + Scene Prompts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -350,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output?.[0]?.content?.[0]?.text || $json.output_text || $json.text || '';\nlet data;\ntry {\n  data = JSON.parse(raw.replace(/^```json\\s*/,'').replace(/\\s*```$/,''));\n} catch (e) {\n  data = { script: raw, source_note: '', scenes: [], title: 'Islamic Reminder', description: '', tags: [] };\n}\nreturn [{json: data}];"
+      },
+      "id": "5",
+      "name": "Parse AI Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "voice",
+              "name": "voice_instruction",
+              "value": "Create a clear, calm Urdu male narration. Respectful documentary tone. No background music over Quran recitation. Do not imitate a specific real person.",
+              "type": "string"
+            },
+            {
+              "id": "video_instruction",
+              "name": "video_instruction",
+              "value": "Create cinematic historical Islamic visuals from the scene prompts. Avoid faces or direct depictions of Prophets and sacred personalities; use environments, silhouettes, architecture, manuscripts, landscapes, hands, objects and symbolic shots where appropriate.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6",
+      "name": "Production Instructions",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        190,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "READY_FOR_VIDEO_GENERATION",
+              "type": "string"
+            },
+            {
+              "id": "next_step",
+              "name": "next_step",
+              "value": "Connect your preferred TTS and AI video provider, then assemble scenes, subtitles and narration before YouTube upload.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7",
+      "name": "Ready for Video Generation",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        80
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Islamic Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Set Islamic Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Islamic Topic": {
+      "main": [
+        [
+          {
+            "node": "AI Script + Scene Prompts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Script + Scene Prompts": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Result": {
+      "main": [
+        [
+          {
+            "node": "Production Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Production Instructions": {
+      "main": [
+        [
+          {
+            "node": "Ready for Video Generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "islamic-youtube-automation-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
